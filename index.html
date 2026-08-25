@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>교육 운영 캘린더</title>
+<style>
+:root{
+  --bundang:#2563eb; --bundang-bg:#e8efff;
+  --ulsan:#ea7a17; --ulsan-bg:#fdeede;
+  --bg:#f4f6fb; --card:#fff; --fg:#1f2430; --muted:#6b7280;
+  --border:#e2e6ee; --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 18px;
+  position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;font-weight:700}
+.spacer{flex:1}
+.btn{border:1px solid var(--border);background:#fff;color:var(--fg);padding:8px 14px;
+  border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.btn:hover{background:#f0f2f7}
+.btn.primary{background:var(--bundang);color:#fff;border-color:var(--bundang)}
+.btn.primary:hover{filter:brightness(.95)}
+.btn.share{background:#0f9d58;color:#fff;border-color:#0f9d58}
+.banner{background:#fff7e6;border-bottom:1px solid #ffe2a8;color:#8a5a00;
+  padding:8px 18px;font-size:13px;text-align:center;font-weight:600}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.metric .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+.metric .num{font-size:26px;font-weight:700}
+.tabs{display:flex;gap:6px;margin-bottom:14px;background:#e9edf5;padding:5px;border-radius:10px;width:fit-content}
+.tab{padding:8px 18px;border-radius:7px;font-size:14px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tab.active{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.panel{display:none}
+.panel.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+/* calendar */
+.cal-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.cal-head .title{font-size:16px;font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.cal-dow{background:#f0f2f7;text-align:center;padding:7px 0;font-size:12px;font-weight:700;color:var(--muted)}
+.cal-cell{background:#fff;min-height:92px;padding:4px;font-size:12px;position:relative}
+.cal-cell.other{background:#fafbfd;color:#c0c6d2}
+.cal-cell.today .daynum{background:var(--bundang);color:#fff;border-radius:50%;
+  width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
+.daynum{font-weight:600;font-size:12px}
+.ev{margin-top:3px;padding:2px 5px;border-radius:5px;font-size:11px;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid transparent;line-height:1.4}
+.ev.bundang{background:var(--bundang-bg);color:#1746a2}
+.ev.ulsan{background:var(--ulsan-bg);color:#9a4d04}
+.ev.tent{border-style:dashed;border-color:currentColor;background:transparent}
+.ev.none{background:transparent;border:1px dashed #c7cdd8;color:#9aa1ad}
+/* list */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:700;background:#fafbfd}
+tr.row{cursor:pointer}
+tr.row:hover td{background:#f7f9fd}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.dot.bundang{background:var(--bundang)}
+.dot.ulsan{background:var(--ulsan)}
+.badge{display:inline-block;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent}
+.badge.s0{background:#f1f3f7;color:#6b7280;border-color:#dfe3ea}
+.badge.s1{background:#fff4e0;color:#9a6400;border-color:#ffe1a8}
+.badge.s2{background:#e3f6ea;color:#127a3a;border-color:#b6e6c6}
+.prog{height:7px;background:#eef1f6;border-radius:4px;overflow:hidden;min-width:70px}
+.prog>i{display:block;height:100%;background:var(--bundang)}
+.tag{font-size:11px;color:var(--muted)}
+/* notice */
+.notice-group{margin-bottom:16px}
+.notice-group h3{font-size:14px;margin:0 0 8px}
+.ni{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);
+  border-radius:8px;margin-bottom:7px;font-size:13px}
+.dday{font-weight:700;font-size:12px;padding:3px 8px;border-radius:6px;background:#fde8e8;color:#c0392b}
+.empty{color:var(--muted);font-size:13px;padding:8px}
+/* modal */
+.mask{position:fixed;inset:0;background:rgba(20,25,40,.45);display:none;align-items:flex-start;
+  justify-content:center;z-index:50;padding:24px;overflow:auto}
+.mask.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:560px;padding:20px}
+.modal h2{margin:0 0 14px;font-size:17px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.f{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px;font-weight:600}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit}
+.hint{font-size:12px;color:var(--bundang);margin-top:4px;font-weight:600}
+.chk-area{border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:6px}
+.chk-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.chk-row input[type=checkbox]{width:auto}
+.chk-row input[type=text]{flex:1}
+.chk-del{cursor:pointer;color:#c0392b;font-weight:700;padding:0 6px}
+.modal-foot{display:flex;gap:8px;margin-top:18px}
+.modal-foot .spacer{flex:1}
+.btn.danger{color:#c0392b;border-color:#f0c5c0}
+@media(max-width:720px){
+  .cards{grid-template-columns:1fr 1fr}
+  .grid2{grid-template-columns:1fr}
+  .cal-cell{min-height:64px}
+  .hide-sm{display:none}
+}
+</style>
+
+</head>
+<body>
+<div id="banner" class="banner" style="display:none">조회 전용 화면입니다 — 일정은 담당자가 관리하며 여기서는 수정할 수 없습니다.</div>
+<header>
+  <h1>교육 운영 캘린더</h1>
+  <span id="modeTag" class="tag">편집 모드 · 이 브라우저에 자동 저장</span>
+  <span class="spacer"></span>
+  <button id="btnShare" class="btn share">공유용 파일 내보내기</button>
+  <button id="btnAdd" class="btn primary">+ 교육 추가</button>
+</header>
+
+<div class="wrap">
+  <div class="cards">
+    <div class="metric"><div class="label">전체 교육</div><div class="num" id="mTotal">31</div></div>
+    <div class="metric"><div class="label">예약확정</div><div class="num" id="mConfirm" style="color:#127a3a">14</div></div>
+    <div class="metric"><div class="label">가예약</div><div class="num" id="mTent" style="color:#9a6400">11</div></div>
+    <div class="metric"><div class="label">이번 달 교육</div><div class="num" id="mMonth">0</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="cal">캘린더</div>
+    <div class="tab" data-tab="list">목록</div>
+    <div class="tab" data-tab="notice">안내</div>
+  </div>
+
+  <div class="panel active" id="p-cal">
+    <div class="card">
+      <div class="cal-head">
+        <button class="btn" id="prevM">‹</button>
+        <span class="title" id="calTitle">2026년 7월</span>
+        <button class="btn" id="nextM">›</button>
+        <span class="spacer"></span>
+        <span class="tag"><span class="dot bundang"></span>분당 &nbsp; <span class="dot ulsan"></span>울산 &nbsp; · 점선=가예약 · 회색점선=예약전</span>
+      </div>
+      <div class="cal-grid" id="calGrid"><div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div><div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div><div class="cal-cell other"><span class="daynum">28</span></div><div class="cal-cell other"><span class="daynum">29</span></div><div class="cal-cell other"><span class="daynum">30</span></div><div class="cal-cell"><span class="daynum">1</span></div><div class="cal-cell"><span class="daynum">2</span></div><div class="cal-cell"><span class="daynum">3</span></div><div class="cal-cell"><span class="daynum">4</span></div><div class="cal-cell"><span class="daynum">5</span></div><div class="cal-cell"><span class="daynum">6</span></div><div class="cal-cell"><span class="daynum">7</span></div><div class="cal-cell"><span class="daynum">8</span></div><div class="cal-cell"><span class="daynum">9</span></div><div class="cal-cell"><span class="daynum">10</span></div><div class="cal-cell"><span class="daynum">11</span></div><div class="cal-cell"><span class="daynum">12</span></div><div class="cal-cell"><span class="daynum">13</span></div><div class="cal-cell"><span class="daynum">14</span></div><div class="cal-cell"><span class="daynum">15</span></div><div class="cal-cell"><span class="daynum">16</span><div class="ev bundang" title="[리더] 작전타임 활용법 / 분당 조선협회 강의장3">13:00 [리더] 작전타임 활용법 1차</div></div><div class="cal-cell"><span class="daynum">17</span></div><div class="cal-cell"><span class="daynum">18</span></div><div class="cal-cell"><span class="daynum">19</span></div><div class="cal-cell"><span class="daynum">20</span><div class="ev bundang" title="[리더] 스리생 추진 / 분당 D52 교육장">13:00 [리더] 스리생 추진 1차</div></div><div class="cal-cell"><span class="daynum">21</span><div class="ev ulsan tent" title="성장마인드셋 / 울산 미래관 2층 분임토의실">13:00 성장마인드셋 1차</div></div><div class="cal-cell"><span class="daynum">22</span><div class="ev ulsan tent" title="목표달성 비법 / 울산 미래관 2층 분임토의실">08:00 목표달성 비법 1차</div></div><div class="cal-cell"><span class="daynum">23</span></div><div class="cal-cell"><span class="daynum">24</span><div class="ev none" title="사전세팅 / 분당 D52">15:00 사전세팅</div></div><div class="cal-cell"><span class="daynum">25</span></div><div class="cal-cell"><span class="daynum">26</span></div><div class="cal-cell"><span class="daynum">27</span><div class="ev bundang" title="목표달성 비법 / 분당 D52 교육장">08:00 목표달성 비법 2차</div></div><div class="cal-cell"><span class="daynum">28</span><div class="ev bundang" title="[리더] 스리생 추진편 / 분당 D53 교육장">13:00 [리더] 스리생 추진편 2차</div></div><div class="cal-cell"><span class="daynum">29</span><div class="ev bundang" title="리더의 툴박스 / 분당 D53 교육장">13:00 리더의 툴박스 1차</div></div><div class="cal-cell"><span class="daynum">30</span></div><div class="cal-cell"><span class="daynum">31</span></div><div class="cal-cell other"><span class="daynum">1</span></div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-list">
+    <div class="card" style="overflow:auto">
+      <table>
+        <thead><tr>
+          <th>교육명</th><th>차수</th><th>일자</th><th class="hide-sm">시간</th>
+          <th class="hide-sm">입실</th><th>지역/교육장</th><th class="hide-sm">강사</th>
+          <th class="hide-sm">인원</th><th class="hide-sm">세팅</th><th>상태</th>
+        </tr></thead>
+        <tbody id="listBody"><tr class="row"><td>[리더] 작전타임 활용법</td><td>1차</td><td>7월 16일 (목)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">09:00</td><td><span class="dot bundang"></span>분당 조선협회 강의장3</td><td class="hide-sm">이혜경 / 000000000</td><td class="hide-sm">15/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781857629816">예약확정</span></td></tr><tr class="row"><td>[리더] 스리생 추진</td><td>1차</td><td>7월 20일 (월)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D52 교육장</td><td class="hide-sm">양정훈</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860517155">예약확정</span></td></tr><tr class="row"><td>성장마인드셋</td><td>1차</td><td>7월 21일 (화)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 2층 분임토의실</td><td class="hide-sm">김지나 /000000</td><td class="hide-sm">15/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1781857688586">가예약</span></td></tr><tr class="row"><td>목표달성 비법</td><td>1차</td><td>7월 22일 (수)</td><td class="hide-sm">08:00 · 8h</td><td class="hide-sm">07:00</td><td><span class="dot ulsan"></span>울산 미래관 2층 분임토의실</td><td class="hide-sm"></td><td class="hide-sm">20/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1781857740777">가예약</span></td></tr><tr class="row"><td>사전세팅</td><td></td><td>7월 24일 (금)</td><td class="hide-sm">15:00 · 2h</td><td class="hide-sm">15:00</td><td><span class="dot bundang"></span>분당 D52</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s0" data-id="e1782193498327">예약전</span></td></tr><tr class="row"><td>목표달성 비법</td><td>2차</td><td>7월 27일 (월)</td><td class="hide-sm">08:00 · 8h</td><td class="hide-sm">07:30</td><td><span class="dot bundang"></span>분당 D52 교육장</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860787757">예약확정</span></td></tr><tr class="row"><td>[리더] 스리생 추진편</td><td>2차</td><td>7월 28일 (화)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D53 교육장</td><td class="hide-sm">양정훈</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860640167">예약확정</span></td></tr><tr class="row"><td>리더의 툴박스</td><td>1차</td><td>7월 29일 (수)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D53 교육장</td><td class="hide-sm">이창준</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1782190405897">예약확정</span></td></tr><tr class="row"><td>존중의 커뮤니케이션</td><td>1차</td><td>8월 12일 (수)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D54 교육장</td><td class="hide-sm">강윤아</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860839477">예약확정</span></td></tr><tr class="row"><td>8월 임원 특강 F/U</td><td></td><td>8월 13일 (목)</td><td class="hide-sm">07:00 · 1.5h</td><td class="hide-sm">06:00</td><td><span class="dot bundang"></span>분당 아산홀</td><td class="hide-sm"></td><td class="hide-sm">0/100</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s0" data-id="e1782192184258">예약전</span></td></tr><tr class="row"><td>성장마인드셋</td><td>2차</td><td>8월 20일 (목)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 조선협회 강의장2</td><td class="hide-sm">김지나</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860895303">예약확정</span></td></tr><tr class="row"><td>사전세팅</td><td></td><td>8월 20일 (목)</td><td class="hide-sm">18:00 · 1h</td><td class="hide-sm">17:30</td><td><span class="dot bundang"></span>분당 D53 교육장</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s0" data-id="e1782193655669">예약전</span></td></tr><tr class="row"><td>목표달성 비법</td><td>3차</td><td>8월 21일 (금)</td><td class="hide-sm">08:00 · 8h</td><td class="hide-sm">07:00</td><td><span class="dot bundang"></span>분당 D53 교육장</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860942055">예약확정</span></td></tr><tr class="row"><td>문제해결사</td><td>1차</td><td>8월 24일 (월)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D54 교육장</td><td class="hide-sm">강태은</td><td class="hide-sm">0/36</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781861070526">예약확정</span></td></tr><tr class="row"><td>*존중의 커뮤니케이션</td><td>2차</td><td>8월 27일 (목)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 2층 분임토의실</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1782190652103">가예약</span></td></tr><tr class="row"><td>*[리더] 작전타임 활용법</td><td>2차</td><td>8월 28일 (금)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 2층 분임토의실</td><td class="hide-sm">이혜경</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1781860059917">가예약</span></td></tr><tr class="row"><td>신임 부서장 과정</td><td>1차</td><td>8월 31일 (월)</td><td class="hide-sm">08:00 · 8h</td><td class="hide-sm">07:30</td><td><span class="dot ulsan"></span>울산 창조관 세미나실2</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1782190729710">가예약</span></td></tr><tr class="row"><td>리더의 툴박스</td><td>2차</td><td>9월 1일 (화)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 2층 분임토의실</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1782190819281">가예약</span></td></tr><tr class="row"><td>신임 부서장 과정</td><td>2차</td><td>9월 2일 (수)</td><td class="hide-sm">08:00 · 8h</td><td class="hide-sm">07:30</td><td><span class="dot ulsan"></span>울산 미래관 1층 중강의실</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1782190770710">가예약</span></td></tr><tr class="row"><td>[리더] 스리생 목표설정</td><td>1차</td><td>9월 3일 (목)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 분임토의실AB</td><td class="hide-sm">이종민</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1781860170562">가예약</span></td></tr><tr class="row"><td>(주윤지원) 사전세팅</td><td></td><td>9월 3일 (목)</td><td class="hide-sm">17:00 · 1h</td><td class="hide-sm">16:30</td><td><span class="dot bundang"></span>분당 D52 교육장</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s0" data-id="e1782193734543">예약전</span></td></tr><tr class="row"><td>(유진)목표달성 비법</td><td>4차</td><td>9월 4일 (금)</td><td class="hide-sm">08:00 · 8h</td><td class="hide-sm">07:30</td><td><span class="dot bundang"></span>분당 D52 교육장</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1782190882237">예약확정</span></td></tr><tr class="row"><td>리더의 툴박스</td><td>3차</td><td>9월 8일 (화)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D53 교육장</td><td class="hide-sm">이창준</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1782191006802">예약확정</span></td></tr><tr class="row"><td>[리더] 스리생 목표설정</td><td>2차</td><td>9월 9일 (수)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D53 교육장</td><td class="hide-sm">서정현</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860118412">예약확정</span></td></tr><tr class="row"><td>*[리더] 스리생 추진편</td><td>3차</td><td>9월 10일 (목)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 2층 분임토의실</td><td class="hide-sm">양정훈</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1781860686457">가예약</span></td></tr><tr class="row"><td>*성장마인드셋</td><td>3차</td><td>9월 11일 (금)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 분임토의실</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1782191075792">가예약</span></td></tr><tr class="row"><td>존중의 커뮤니케이션</td><td>3차</td><td>9월 14일 (월)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 D52 교육장</td><td class="hide-sm">강윤아</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1782191146987">예약확정</span></td></tr><tr class="row"><td>[리더] 스리생 목표설정</td><td>3차</td><td>9월 16일 (수)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">12:30</td><td><span class="dot bundang"></span>분당 </td><td class="hide-sm">이종민</td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s2" data-id="e1781860425986">예약확정</span></td></tr><tr class="row"><td>*문제해결사</td><td>2차</td><td>9월 30일 (수)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 분임토의실</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s0" data-id="e1782191210911">예약전</span></td></tr><tr class="row"><td>(출장x) 성장마인드셋</td><td>4차</td><td>10월 16일 (금)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot bundang"></span>분당 </td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s0" data-id="e1782191355466">예약전</span></td></tr><tr class="row"><td>존중의 커뮤니케이션</td><td>4차</td><td>10월 16일 (금)</td><td class="hide-sm">13:00 · 4h</td><td class="hide-sm">10:00</td><td><span class="dot ulsan"></span>울산 미래관 분임토의실</td><td class="hide-sm"></td><td class="hide-sm">0/0</td><td class="hide-sm"><div class="prog"><i style="width:0%"></i></div><span class="tag">0%</span></td><td><span class="badge s1" data-id="e1782191387517">가예약</span></td></tr></tbody>
+      </table>
+      <div id="listEmpty" class="empty" style="display: none;">등록된 교육이 없습니다. 우측 상단 ‘+ 교육 추가’로 시작하세요.</div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-notice">
+    <div class="card">
+      <div class="notice-group"><h3>수강신청 안내 (D-35 ~ D-20)</h3><div id="nApply"><div class="ni"><span class="dday">D-23</span><span class="dot bundang"></span><b>[리더] 작전타임 활용법</b> 1차 &nbsp;<span class="tag">7월 16일 · 분당 조선협회 강의장3 · 입실 09:00</span></div><div class="ni"><span class="dday">D-27</span><span class="dot bundang"></span><b>[리더] 스리생 추진</b> 1차 &nbsp;<span class="tag">7월 20일 · 분당 D52 교육장 · 입실 10:00</span></div><div class="ni"><span class="dday">D-28</span><span class="dot ulsan"></span><b>성장마인드셋</b> 1차 &nbsp;<span class="tag">7월 21일 · 울산 미래관 2층 분임토의실 · 입실 10:00</span></div><div class="ni"><span class="dday">D-29</span><span class="dot ulsan"></span><b>목표달성 비법</b> 1차 &nbsp;<span class="tag">7월 22일 · 울산 미래관 2층 분임토의실 · 입실 07:00</span></div><div class="ni"><span class="dday">D-31</span><span class="dot bundang"></span><b>사전세팅</b>  &nbsp;<span class="tag">7월 24일 · 분당 D52 · 입실 15:00</span></div><div class="ni"><span class="dday">D-34</span><span class="dot bundang"></span><b>목표달성 비법</b> 2차 &nbsp;<span class="tag">7월 27일 · 분당 D52 교육장 · 입실 07:30</span></div><div class="ni"><span class="dday">D-35</span><span class="dot bundang"></span><b>[리더] 스리생 추진편</b> 2차 &nbsp;<span class="tag">7월 28일 · 분당 D53 교육장 · 입실 10:00</span></div></div></div>
+      <div class="notice-group"><h3>사전 안내 (D-14 전후)</h3><div id="nPre"><div class="empty">해당 기간 교육 없음</div></div></div>
+      <div class="notice-group"><h3>참석 리마인드 (D-3 전후)</h3><div id="nRemind"><div class="empty">해당 기간 교육 없음</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- modal -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h2 id="mTitle">교육 추가</h2>
+    <label class="f">교육명</label>
+    <input id="f_name" placeholder="예: 안전보건 정기교육">
+    <div class="grid2">
+      <div><label class="f">차수</label><input id="f_round" placeholder="예: 3차"></div>
+      <div><label class="f">교육일자</label><input id="f_date" type="date"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">시작시간</label><input id="f_start" type="time" value="09:00"></div>
+      <div><label class="f">교육시간(시간)</label><input id="f_hours" type="number" min="1" value="8"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">지역</label><select id="f_region"><option>분당</option><option>울산</option></select></div>
+      <div><label class="f">교육장</label><input id="f_room" placeholder="예: 본관 3층 교육장"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">세팅 소요시간(분)</label><input id="f_setup" type="number" min="0" value="30"></div>
+      <div><label class="f">입실/준비 시작</label><input id="f_entry" disabled=""></div>
+    </div>
+    <div class="hint" id="entryHint"></div>
+    <div class="grid2">
+      <div><label class="f">강사 / 연락처</label><input id="f_inst" placeholder="홍길동 / [PHONE_NUMBER]"></div>
+      <div><label class="f">기관담당자 / 연락처</label><input id="f_mgr" placeholder="김담당 / [PHONE_NUMBER]"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">정원</label><input id="f_cap" type="number" min="0" placeholder="30"></div>
+      <div><label class="f">신청인원</label><input id="f_app" type="number" min="0" placeholder="0"></div>
+    </div>
+    <label class="f">예약상태</label>
+    <select id="f_status"><option value="0">예약전</option><option value="1">가예약</option><option value="2">예약확정</option></select>
+
+    <label class="f">세팅 체크리스트</label>
+    <div class="chk-area" id="chkArea"></div>
+    <button class="btn" id="chkAdd" style="margin-top:8px">+ 항목 추가</button>
+
+    <div class="modal-foot">
+      <button class="btn danger" id="btnDel" style="display:none">삭제</button>
+      <span class="spacer"></span>
+      <button class="btn" id="btnCancel">취소</button>
+      <button class="btn primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 복원판: 편집 가능 + 데이터 시드(31건) ===== */
+var READONLY = (typeof window.__READONLY__!=="undefined") ? !!window.__READONLY__ : false;
+var EMBED = (typeof window.__EMBED__!=="undefined") ? window.__EMBED__ : null;
+var STORE="edu_cal_v4";
+var DEFAULT_CHK=["교보재 도착 확인","PC·빔·음향 점검","좌석 배치","출석부·명단 준비","강사 사전 연락","다과·음료 준비"];
+var SEED=[{"id": "e1781857629816", "name": "[리더] 작전타임 활용법", "round": "1차", "date": "2026-07-16", "start": "13:00", "hours": "4", "region": "분당", "room": "조선협회 강의장3", "setup": "240", "inst": "이혜경 / 000000000", "mgr": "이혜경 / 000000000", "cap": "", "app": "15", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781857688586", "name": "성장마인드셋", "round": "1차", "date": "2026-07-21", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 2층 분임토의실", "setup": "180", "inst": "김지나 /000000", "mgr": "최대한 / 000000", "cap": "", "app": "15", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781857740777", "name": "목표달성 비법", "round": "1차", "date": "2026-07-22", "start": "08:00", "hours": "8", "region": "울산", "room": "미래관 2층 분임토의실", "setup": "60", "inst": "", "mgr": "", "cap": "", "app": "20", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860059917", "name": "*[리더] 작전타임 활용법", "round": "2차", "date": "2026-08-28", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 2층 분임토의실", "setup": "180", "inst": "이혜경", "mgr": "", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860118412", "name": "[리더] 스리생 목표설정", "round": "2차", "date": "2026-09-09", "start": "13:00", "hours": "4", "region": "분당", "room": "D53 교육장", "setup": "180", "inst": "서정현", "mgr": "김정혁", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860170562", "name": "[리더] 스리생 목표설정", "round": "1차", "date": "2026-09-03", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 분임토의실AB", "setup": "180", "inst": "이종민", "mgr": "김정혁", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860425986", "name": "[리더] 스리생 목표설정", "round": "3차", "date": "2026-09-16", "start": "13:00", "hours": "4", "region": "분당", "room": "", "setup": "30", "inst": "이종민", "mgr": "김정혁", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860517155", "name": "[리더] 스리생 추진", "round": "1차", "date": "2026-07-20", "start": "13:00", "hours": "4", "region": "분당", "room": "D52 교육장", "setup": "180", "inst": "양정훈", "mgr": "김정혁", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860640167", "name": "[리더] 스리생 추진편", "round": "2차", "date": "2026-07-28", "start": "13:00", "hours": "4", "region": "분당", "room": "D53 교육장", "setup": "180", "inst": "양정훈", "mgr": "김정혁", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860686457", "name": "*[리더] 스리생 추진편", "round": "3차", "date": "2026-09-10", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 2층 분임토의실", "setup": "180", "inst": "양정훈", "mgr": "김정혁", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}, {"text": "인재원 협조 요청(인력 지원)", "done": false}]}, {"id": "e1781860787757", "name": "목표달성 비법", "round": "2차", "date": "2026-07-27", "start": "08:00", "hours": "8", "region": "분당", "room": "D52 교육장", "setup": "30", "inst": "", "mgr": "", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860839477", "name": "존중의 커뮤니케이션", "round": "1차", "date": "2026-08-12", "start": "13:00", "hours": "4", "region": "분당", "room": "D54 교육장", "setup": "180", "inst": "강윤아", "mgr": "", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860895303", "name": "성장마인드셋", "round": "2차", "date": "2026-08-20", "start": "13:00", "hours": "4", "region": "분당", "room": "조선협회 강의장2", "setup": "180", "inst": "김지나", "mgr": "", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781860942055", "name": "목표달성 비법", "round": "3차", "date": "2026-08-21", "start": "08:00", "hours": "8", "region": "분당", "room": "D53 교육장", "setup": "60", "inst": "", "mgr": "", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1781861070526", "name": "문제해결사", "round": "1차", "date": "2026-08-24", "start": "13:00", "hours": "4", "region": "분당", "room": "D54 교육장", "setup": "180", "inst": "강태은", "mgr": "최대한", "cap": "36", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782190405897", "name": "리더의 툴박스", "round": "1차", "date": "2026-07-29", "start": "13:00", "hours": "4", "region": "분당", "room": "D53 교육장", "setup": "180", "inst": "이창준", "mgr": "주으뜸", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782190652103", "name": "*존중의 커뮤니케이션", "round": "2차", "date": "2026-08-27", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 2층 분임토의실", "setup": "180", "inst": "", "mgr": "", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}, {"text": "인재교육원 협조 요청", "done": false}]}, {"id": "e1782190729710", "name": "신임 부서장 과정", "round": "1차", "date": "2026-08-31", "start": "08:00", "hours": "8", "region": "울산", "room": "창조관 세미나실2", "setup": "30", "inst": "", "mgr": "", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782190770710", "name": "신임 부서장 과정", "round": "2차", "date": "2026-09-02", "start": "08:00", "hours": "8", "region": "울산", "room": "미래관 1층 중강의실", "setup": "30", "inst": "", "mgr": "", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782190819281", "name": "리더의 툴박스", "round": "2차", "date": "2026-09-01", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 2층 분임토의실", "setup": "180", "inst": "", "mgr": "", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782190882237", "name": "(유진)목표달성 비법", "round": "4차", "date": "2026-09-04", "start": "08:00", "hours": "8", "region": "분당", "room": "D52 교육장", "setup": "30", "inst": "", "mgr": "", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782191006802", "name": "리더의 툴박스", "round": "3차", "date": "2026-09-08", "start": "13:00", "hours": "4", "region": "분당", "room": "D53 교육장", "setup": "180", "inst": "이창준", "mgr": "", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782191075792", "name": "*성장마인드셋", "round": "3차", "date": "2026-09-11", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 분임토의실", "setup": "180", "inst": "", "mgr": "", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}, {"text": "인재원 협조 요청(인력 지원)", "done": false}]}, {"id": "e1782191146987", "name": "존중의 커뮤니케이션", "round": "3차", "date": "2026-09-14", "start": "13:00", "hours": "4", "region": "분당", "room": "D52 교육장", "setup": "180", "inst": "강윤아", "mgr": "최대한", "cap": "", "app": "", "status": 2, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782191210911", "name": "*문제해결사", "round": "2차", "date": "2026-09-30", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 분임토의실", "setup": "180", "inst": "", "mgr": "", "cap": "", "app": "", "status": 0, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}, {"text": "인재원 협조 요청(인력 지원, 오프닝도 가능하면)", "done": false}]}, {"id": "e1782191355466", "name": "(출장x) 성장마인드셋", "round": "4차", "date": "2026-10-16", "start": "13:00", "hours": "4", "region": "분당", "room": "", "setup": "180", "inst": "", "mgr": "", "cap": "", "app": "", "status": 0, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}, {"text": "인재원 협조 요청(오프닝 진행 필요)", "done": false}]}, {"id": "e1782191387517", "name": "존중의 커뮤니케이션", "round": "4차", "date": "2026-10-16", "start": "13:00", "hours": "4", "region": "울산", "room": "미래관 분임토의실", "setup": "180", "inst": "", "mgr": "", "cap": "", "app": "", "status": 1, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782192184258", "name": "8월 임원 특강 F/U", "round": "", "date": "2026-08-13", "start": "07:00", "hours": "1.5", "region": "분당", "room": "아산홀", "setup": "60", "inst": "", "mgr": "", "cap": "100", "app": "", "status": 0, "checklist": [{"text": "PC·빔·음향 점검", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782193498327", "name": "사전세팅", "round": "", "date": "2026-07-24", "start": "15:00", "hours": "2", "region": "분당", "room": "D52", "setup": "0", "inst": "", "mgr": "", "cap": "", "app": "", "status": 0, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782193655669", "name": "사전세팅", "round": "", "date": "2026-08-20", "start": "18:00", "hours": "1", "region": "분당", "room": "D53 교육장", "setup": "30", "inst": "", "mgr": "", "cap": "", "app": "", "status": 0, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}, {"id": "e1782193734543", "name": "(주윤지원) 사전세팅", "round": "", "date": "2026-09-03", "start": "17:00", "hours": "1", "region": "분당", "room": "D52 교육장", "setup": "30", "inst": "", "mgr": "", "cap": "", "app": "", "status": 0, "checklist": [{"text": "교보재 도착 확인", "done": false}, {"text": "PC·빔·음향 점검", "done": false}, {"text": "좌석 배치", "done": false}, {"text": "출석부·명단 준비", "done": false}, {"text": "강사 사전 연락", "done": false}, {"text": "다과·음료 준비", "done": false}]}];
+var data;
+if(READONLY && EMBED && Array.isArray(EMBED) && EMBED.length>0){
+  data = EMBED;
+} else {
+  try{ data=JSON.parse(localStorage.getItem(STORE)); }catch(e){ data=null; }
+  if(!data || !Array.isArray(data) || data.length===0){ data=SEED; }
+}
+function save(){ if(READONLY) return; try{ localStorage.setItem(STORE, JSON.stringify(data)); }catch(e){} }
+save();
+var editId=null;
+var curChk=[];
+
+/* ===== 헬퍼(복원) ===== */
+function find(id){ for(var i=0;i<data.length;i++){ if(data[i].id===id) return data[i]; } return null; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function gv(k){ var el=document.getElementById("f_"+k); return el?el.value:""; }
+function setF(k,v){ var el=document.getElementById("f_"+k); if(el) el.value=(v==null?"":v); }
+function openModal(){ document.getElementById("mask").style.display="flex"; }
+function closeModal(){ document.getElementById("mask").style.display="none"; }
+function renderAll(){ renderMetrics(); renderCal(); renderList(); renderNotice(); }
+
+/* ===== 날짜 유틸 (시간대 변환 없이 문자열->숫자) ===== */
+function parseYMD(s){ if(!s) return null; var p=s.split("-"); return {y:+p[0],m:+p[1],d:+p[2]}; }
+function korDate(s){ var o=parseYMD(s); return o? (o.m+"월 "+o.d+"일") : ""; }
+function dow(s){ var o=parseYMD(s); var dy=new Date(Date.UTC(o.y,o.m-1,o.d)).getUTCDay(); return "일월화수목금토"[dy]; }
+function daysUntil(s){ var o=parseYMD(s); var t=new Date();
+  var a=Date.UTC(o.y,o.m-1,o.d), b=Date.UTC(t.getFullYear(),t.getMonth(),t.getDate());
+  return Math.round((a-b)/86400000); }
+function entryTime(start,setup){ if(!start) return ""; var p=start.split(":"); 
+  var mins=(+p[0])*60+(+p[1])-(+setup||0); if(mins<0)mins=0;
+  var h=Math.floor(mins/60), m=mins%60; return ("0"+h).slice(-2)+":"+("0"+m).slice(-2); }
+function pad(n){return ("0"+n).slice(-2);}
+function chkPct(c){ if(!c||!c.length) return 0; var d=c.filter(function(x){return x.done}).length; return Math.round(d/c.length*100); }
+
+/* ===== 지표 ===== */
+function renderMetrics(){
+  var now=new Date(), ym=now.getFullYear()+"-"+pad(now.getMonth()+1);
+  document.getElementById("mTotal").textContent=data.length;
+  document.getElementById("mConfirm").textContent=data.filter(function(e){return e.status==2}).length;
+  document.getElementById("mTent").textContent=data.filter(function(e){return e.status==1}).length;
+  document.getElementById("mMonth").textContent=data.filter(function(e){return (e.date||"").slice(0,7)==ym}).length;
+}
+
+/* ===== 캘린더 ===== */
+var calY, calM; // month view
+function initCal(){ var n=new Date(); calY=n.getFullYear(); calM=n.getMonth(); }
+function renderCal(){
+  var g=document.getElementById("calGrid"); g.innerHTML="";
+  document.getElementById("calTitle").textContent=calY+"년 "+(calM+1)+"월";
+  ["일","월","화","수","목","금","토"].forEach(function(d){
+    var e=document.createElement("div"); e.className="cal-dow"; e.textContent=d; g.appendChild(e); });
+  var first=new Date(Date.UTC(calY,calM,1)).getUTCDay();
+  var dim=new Date(Date.UTC(calY,calM+1,0)).getUTCDate();
+  var prevDim=new Date(Date.UTC(calY,calM,0)).getUTCDate();
+  var today=new Date(), tStr=today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate());
+  var cells=[];
+  for(var i=0;i<first;i++) cells.push({d:prevDim-first+1+i,other:true});
+  for(var d=1;d<=dim;d++) cells.push({d:d,other:false});
+  while(cells.length%7!==0) cells.push({d:cells.length-first-dim+1,other:true});
+  cells.forEach(function(c){
+    var cell=document.createElement("div"); cell.className="cal-cell"+(c.other?" other":"");
+    var ds=calY+"-"+pad(calM+1)+"-"+pad(c.d);
+    if(!c.other && ds===tStr) cell.className+=" today";
+    cell.innerHTML='<span class="daynum">'+c.d+'</span>';
+    if(!c.other){
+      data.filter(function(e){return e.date===ds}).forEach(function(e){
+        var cls = e.status==0 ? "none" : (e.region==="울산"?"ulsan":"bundang") + (e.status==1?" tent":"");
+        var ev=document.createElement("div"); ev.className="ev "+cls;
+        ev.textContent=(e.start||"")+" "+e.name+(e.round?" "+e.round:"");
+        ev.title=e.name+" / "+e.region+" "+(e.room||"");
+        if(!READONLY) ev.onclick=function(ev2){ ev2.stopPropagation(); openEdit(e.id); };
+        cell.appendChild(ev);
+      });
+    }
+    g.appendChild(cell);
+  });
+}
+
+/* ===== 목록 ===== */
+var STAT=["예약전","가예약","예약확정"];
+function renderList(){
+  var tb=document.getElementById("listBody"); tb.innerHTML="";
+  var rows=data.slice().sort(function(a,b){return (a.date||"").localeCompare(b.date||"")});
+  document.getElementById("listEmpty").style.display=rows.length?"none":"block";
+  rows.forEach(function(e){
+    var tr=document.createElement("tr"); tr.className="row";
+    var pct=chkPct(e.checklist);
+    tr.innerHTML=
+      '<td>'+esc(e.name)+'</td>'+
+      '<td>'+esc(e.round||"")+'</td>'+
+      '<td>'+korDate(e.date)+' ('+dow(e.date)+')</td>'+
+      '<td class="hide-sm">'+(e.start||"")+' · '+(e.hours||"")+'h</td>'+
+      '<td class="hide-sm">'+entryTime(e.start,e.setup)+'</td>'+
+      '<td><span class="dot '+(e.region==="울산"?"ulsan":"bundang")+'"></span>'+e.region+' '+esc(e.room||"")+'</td>'+
+      '<td class="hide-sm">'+esc(e.inst||"")+'</td>'+
+      '<td class="hide-sm">'+(e.app||0)+'/'+(e.cap||0)+'</td>'+
+      '<td class="hide-sm"><div class="prog"><i style="width:'+pct+'%"></i></div><span class="tag">'+pct+'%</span></td>'+
+      '<td><span class="badge s'+e.status+'" data-id="'+e.id+'">'+STAT[e.status]+'</span></td>';
+    if(!READONLY){
+      tr.querySelector(".badge").onclick=function(ev){ ev.stopPropagation(); cycleStatus(e.id); };
+      tr.onclick=function(){ openEdit(e.id); };
+    }
+    tb.appendChild(tr);
+  });
+}
+function cycleStatus(id){ var e=find(id); e.status=(e.status+1)%3; save(); renderAll(); }
+
+/* ===== 안내 ===== */
+function renderNotice(){
+  var apply=[],pre=[],remind=[];
+  data.forEach(function(e){ if(!e.date) return; var d=daysUntil(e.date);
+    if(d<=35 && d>=20) apply.push(e);
+    if(d<=16 && d>=10) pre.push(e);
+    if(d<=4 && d>=0) remind.push(e); });
+  fillNotice("nApply",apply); fillNotice("nPre",pre); fillNotice("nRemind",remind);
+}
+function fillNotice(id,arr){
+  var box=document.getElementById(id);
+  if(!arr.length){ box.innerHTML='<div class="empty">해당 기간 교육 없음</div>'; return; }
+  box.innerHTML="";
+  arr.sort(function(a,b){return daysUntil(a.date)-daysUntil(b.date)});
+  arr.forEach(function(e){ var d=daysUntil(e.date);
+    var el=document.createElement("div"); el.className="ni";
+    el.innerHTML='<span class="dday">D-'+d+'</span><span class="dot '+(e.region==="울산"?"ulsan":"bundang")+'"></span>'+
+      '<b>'+esc(e.name)+'</b> '+esc(e.round||"")+' &nbsp;<span class="tag">'+korDate(e.date)+' · '+e.region+' '+esc(e.room||"")+' · 입실 '+entryTime(e.start,e.setup)+'</span>';
+    box.appendChild(el); });
+}
+
+/* ===== 모달 ===== */
+var editId=null, curChk=[];
+function openAdd(){
+  editId=null; curChk=DEFAULT_CHK.map(function(t){return {text:t,done:false}});
+  document.getElementById("mTitle").textContent="교육 추가";
+  setF("name","");setF("round","");setF("date","");setF("start","09:00");setF("hours","8");
+  document.getElementById("f_region").value="분당";setF("room","");setF("setup","30");
+  setF("inst","");setF("mgr","");setF("cap","");setF("app","");
+  document.getElementById("f_status").value="0";
+  document.getElementById("btnDel").style.display="none";
+  renderChk(); updateEntry(); openModal();
+}
+function openEdit(id){
+  var e=find(id); editId=id;
+  curChk=(e.checklist||[]).map(function(c){return {text:c.text,done:c.done}});
+  document.getElementById("mTitle").textContent="교육 수정";
+  setF("name",e.name);setF("round",e.round);setF("date",e.date);setF("start",e.start);setF("hours",e.hours);
+  document.getElementById("f_region").value=e.region;setF("room",e.room);setF("setup",e.setup);
+  setF("inst",e.inst);setF("mgr",e.mgr);setF("cap",e.cap);setF("app",e.app);
+  document.getElementById("f_status").value=e.status;
+  document.getElementById("btnDel").style.display="inline-block";
+  renderChk(); updateEntry(); openModal();
+}
+function renderChk(){
+  var a=document.getElementById("chkArea"); a.innerHTML="";
+  curChk.forEach(function(c,i){
+    var r=document.createElement("div"); r.className="chk-row";
+    r.innerHTML='<input type="checkbox" '+(c.done?"checked":"")+'>'+
+      '<input type="text" value="'+esc(c.text)+'"><span class="chk-del">×</span>';
+    r.children[0].onchange=function(){ curChk[i].done=this.checked; };
+    r.children[1].oninput=function(){ curChk[i].text=this.value; };
+    r.children[2].onclick=function(){ curChk.splice(i,1); renderChk(); };
+    a.appendChild(r);
+  });
+}
+function updateEntry(){
+  var t=entryTime(document.getElementById("f_start").value, document.getElementById("f_setup").value);
+  document.getElementById("f_entry").value=t;
+  document.getElementById("entryHint").textContent=t? ("→ 입실/준비는 "+t+"까지"):"";
+}
+function saveForm(){
+  var name=document.getElementById("f_name").value.trim();
+  var date=document.getElementById("f_date").value;
+  if(!name){ alert("교육명을 입력하세요."); return; }
+  if(!date){ alert("교육일자를 입력하세요."); return; }
+  var o={ id: editId||("e"+Date.now()),
+    name:name, round:gv("round"), date:date, start:gv("start"), hours:gv("hours"),
+    region:document.getElementById("f_region").value, room:gv("room"), setup:gv("setup"),
+    inst:gv("inst"), mgr:gv("mgr"), cap:gv("cap"), app:gv("app"),
+    status:+document.getElementById("f_status").value,
+    checklist:curChk.map(function(c){return {text:c.text,done:c.done}}) };
+  if(editId){ var i=data.findIndex(function(x){return x.id===editId}); data[i]=o; }
+  else data.push(o);
+  save(); closeModal(); renderAll();
+}
+function delEntry(){ if(!confirm("이 교육을 삭제할까요?")) return;
+  data=data.filter(function(x){return x.id!==editId}); save(); closeModal(); renderAll(); }
+
+
+
+/* ===== 공유용 파일 내보내기(복원) ===== */
+function exportShare(){
+  var snapshot=JSON.parse(JSON.stringify(data));
+  var doc="<!DOCTYPE html>\n"+document.documentElement.outerHTML;
+  var reEmbed=new RegExp("<scr"+"ipt>\\s*window\\.__EMBED__[\\s\\S]*?<\\/scr"+"ipt>","g");
+  doc=doc.replace(reEmbed,"");
+  var inject="<scr"+"ipt>window.__EMBED__="+JSON.stringify(snapshot).replace(/<\//g,"<\\/")+";window.__READONLY__=true;<\/scr"+"ipt>";
+  doc=doc.replace("</head>", inject+"\n</head>");
+  var blob=new Blob([doc],{type:"text/html;charset=utf-8"});
+  var a=document.createElement("a");
+  var d=new Date(), fn="교육캘린더_공유용_"+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+".html";
+  a.href=URL.createObjectURL(blob); a.download=fn;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },1500);
+  alert("공유용(조회 전용) 파일이 다운로드되었습니다:\n"+fn+"\n\n바탕화면 등 안전한 위치에 저장 후 Netlify Drop에 올리세요.");
+}
+
+/* ===== 이벤트 바인딩(복원) ===== */
+function bindTabs(){
+  var map={cal:"p-cal",list:"p-list",notice:"p-noti"};
+  var tabs=document.querySelectorAll(".tab");
+  for(var i=0;i<tabs.length;i++){
+    tabs[i].addEventListener("click",function(){
+      var t=this.getAttribute("data-tab");
+      var all=document.querySelectorAll(".tab");
+      for(var j=0;j<all.length;j++){ all[j].classList.remove("active"); }
+      this.classList.add("active");
+      for(var k in map){ var p=document.getElementById(map[k]); if(p) p.classList.remove("active"); }
+      var tp=document.getElementById(map[t]); if(tp) tp.classList.add("active");
+    });
+  }
+}
+function bindButtons(){
+  var B=function(id,fn){ var el=document.getElementById(id); if(el) el.onclick=fn; };
+  B("btnAdd",openAdd);
+  B("btnShare",exportShare);
+  B("btnSave",saveForm);
+  B("btnCancel",closeModal);
+  B("btnDel",delEntry);
+  B("chkAdd",function(){ curChk.push({text:"",done:false}); renderChk(); });
+  B("prevM",function(){ calM--; if(calM<0){calM=11;calY--;} renderCal(); });
+  B("nextM",function(){ calM++; if(calM>11){calM=0;calY++;} renderCal(); });
+  var fs=document.getElementById("f_start"), fu=document.getElementById("f_setup");
+  if(fs) fs.addEventListener("input",updateEntry);
+  if(fu) fu.addEventListener("input",updateEntry);
+  var mk=document.getElementById("mask");
+  if(mk) mk.addEventListener("click",function(e){ if(e.target===this) closeModal(); });
+}
+
+/* ===== 초기 실행(복원) ===== */
+function applyReadonlyUI(){
+  if(!READONLY) return;
+  var bn=document.getElementById("banner"); if(bn) bn.style.display="block";
+  var mt=document.getElementById("modeTag"); if(mt) mt.textContent="조회 전용 모드";
+  var ba=document.getElementById("btnAdd"); if(ba) ba.style.display="none";
+  var bs=document.getElementById("btnShare"); if(bs) bs.style.display="none";
+}
+
+initCal();
+bindTabs();
+bindButtons();
+renderAll();
+applyReadonlyUI();
+</script>
+</body>
+</html>
